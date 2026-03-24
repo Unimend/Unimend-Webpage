@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Technical Artist | Portfolio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&family=Inter:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            /* 核心配色：锐利的黑白灰 + 科技感强调色 */
-            --bg-color: #0a0a0a;
-            --surface-color: #141414;
-            --accent-color: #00ff88; /* 极光绿，可换成 #007bff 或 #ff3e00 */
+            --bg-color: #060606;
+            --surface-color: rgba(15, 15, 15, 0.85);
+            --accent-h: 152;
+            --accent-s: 100%;
+            --accent-l: 50%;
+            --accent-color: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
             --text-main: #ffffff;
-            --text-dim: #888888;
-            --border-color: #262626;
-            --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --text-dim: #777777;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --transition: 0.2s ease;
         }
 
         * {
@@ -27,233 +32,458 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Inter', -apple-system, sans-serif;
-            line-height: 1.6;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            /* 加载时禁止滚动 */
+            min-height: 100vh;
         }
 
-        code, .mono {
+        .mono {
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* 布局装饰：背景线条 */
-        body::before {
-            content: "";
+        /* --- 原有开机动画遮罩层 (保持不变) --- */
+        #loader-wrapper {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
-                              linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.05;
-            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.8s cubic-bezier(0.85, 0, 0.15, 1);
         }
 
-        /* 导航栏 */
+        .loader-content {
+            width: 300px;
+            text-align: left;
+        }
+
+        .loader-bar-container {
+            width: 100%;
+            height: 2px;
+            background: #111;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader-bar {
+            position: absolute;
+            height: 100%;
+            width: 0%;
+            background: var(--accent-color);
+            transition: width 0.4s ease;
+        }
+
+        .loader-text {
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* 消失状态 */
+        body.loaded {
+            overflow-y: auto;
+        }
+
+        body.loaded #loader-wrapper {
+            transform: translateY(-100%);
+        }
+
+        /* --- 原有背景 Canvas (保持不变) --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #111 0%, #060606 100%);
+        }
+
+        /* --- 原有调色面板 (保持不变) --- */
+        #color-inspector {
+            position: fixed;
+            top: 100px;
+            right: 25px;
+            width: 220px;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            padding: 15px;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+            box-shadow: 12px 12px 0px rgba(0, 0, 0, 0.9);
+        }
+
+        .inspector-title {
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            appearance: none;
+            background: #333;
+            height: 1px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 4px;
+            height: 12px;
+            background: var(--accent-color);
+            cursor: pointer;
+        }
+
+        /* --- 原有页面内容 (保持不变) --- */
         nav {
             position: fixed;
-            top: 0; width: 100%;
-            padding: 2rem 5%;
+            top: 0;
+            width: 100%;
+            padding: 1.5rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(6, 6, 6, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
             z-index: 100;
-            border-bottom: 1px solid var(--border-color);
         }
 
-        .logo {
-            font-weight: 700;
-            letter-spacing: -1px;
-            font-size: 1.2rem;
-        }
-
-        .nav-links a {
-            color: var(--text-dim);
-            text-decoration: none;
-            margin-left: 2rem;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--accent-color);
-        }
-
-        /* 主体容器 */
         main {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
-            padding: 120px 5% 50px;
+            padding: 180px 5% 80px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Hero 部分 */
-        .hero {
-            padding: 100px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
+        /* --- 新增：文字逐字跳出 Hero 标题 --- */
         .hero h1 {
-            font-size: clamp(2.5rem, 8vw, 5rem);
-            line-height: 1;
-            margin-bottom: 2rem;
+            font-size: clamp(2.5rem, 10vw, 5.5rem);
+            line-height: 0.85;
+            letter-spacing: -3px;
         }
 
-        .hero p {
-            color: var(--text-dim);
-            max-width: 600px;
-            font-size: 1.1rem;
+        .hero h1 span.char {
+            display: inline-block;
+            opacity: 0;
+            /* 默认隐藏 */
+            transform: translateY(20px);
+            /* 略微下移 */
+            animation: char-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes char-reveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .accent-text {
             color: var(--accent-color);
+            transition: color 0.1s;
         }
 
-        /* 核心板块样式 */
         section {
             padding: 80px 0;
             border-bottom: 1px solid var(--border-color);
         }
 
         .section-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.2rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.4rem;
             color: var(--accent-color);
             margin-bottom: 3rem;
             display: block;
         }
 
-        /* 作品网格 */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
 
+        /* --- 已修改：卡片基础样式 (已删除 Glitch 效果) --- */
         .card {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            transition: var(--transition);
+            padding: 30px;
+            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            border-radius: 0;
+            /* 保持锐利直角 */
         }
 
         .card:hover {
             border-color: var(--accent-color);
-            transform: translateY(-5px);
+            transform: translateY(-8px);
+            background: rgba(25, 25, 25, 0.9);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            /* 增加悬停阴影增强视觉感 */
         }
 
-        .card h3 {
-            margin-bottom: 1rem;
-        }
-
-        .card p {
-            color: var(--text-dim);
-            font-size: 0.9rem;
-        }
-
-        .tag {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            font-size: 0.7rem;
-            margin-top: 1rem;
-        }
-
-        /* 技能标签 */
-        .skills-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .skill-item {
-            font-size: 1.2rem;
-            padding: 0.5rem 1rem;
-            border-left: 3px solid var(--accent-color);
-            background: var(--surface-color);
-        }
+        /* Glitch 伪元素相关样式已全部删除 */
 
         footer {
-            padding: 50px 5%;
+            padding: 40px;
             text-align: center;
             color: var(--text-dim);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            opacity: 0.5;
         }
 
-        /* 响应式 */
         @media (max-width: 768px) {
-            .nav-links { display: none; }
+            #color-inspector {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
 
-    <nav>
-        <div class="logo mono">TA_PORTFOLIO // 2026</div>
-        <div class="nav-links">
-            <a href="#work">PROJECTS</a>
-            <a href="#skills">STACK</a>
-            <a href="#about">ABOUT</a>
+    <div id="loader-wrapper" class="mono">
+        <div class="loader-content">
+            <div id="status-text" class="loader-text">Initializing OS...</div>
+            <div class="loader-bar-container">
+                <div id="loader-progress" class="loader-bar"></div>
+            </div>
+            <div id="log-text" style="font-size: 0.5rem; color: #444; margin-top: 10px;">> Booting kernel...</div>
         </div>
+    </div>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="color-inspector" class="mono">
+        <div class="inspector-title"><span>RENDER_SETTINGS</span><span>V2.3</span></div>
+        <div class="control-group">
+            <label>ACCENT_HUE</label>
+            <input type="range" id="hue" min="0" max="360" value="152">
+        </div>
+        <div class="control-group">
+            <label>SATURATION</label>
+            <input type="range" id="sat" min="0" max="100" value="90">
+        </div>
+        <div class="control-group">
+            <label>LIGHTNESS</label>
+            <input type="range" id="light" min="30" max="70" value="50">
+        </div>
+        <div style="font-size: 0.6rem; margin-top: 10px; color: var(--text-dim);">
+            SYSTEM_STATE: <span class="accent-text">STABLE</span><br>
+            BOOT_SEQUENCE: <span class="accent-text">COMPLETE</span><br>
+            TITLE_ANIM: <span class="accent-text">READY</span>
+        </div>
+    </div>
+
+    <nav>
+        <div class="logo mono">TECH_ART_OS</div>
+        <div class="mono" style="font-size: 0.7rem;">[ 0101_STABLE_VER ]</div>
     </nav>
 
     <main>
         <section class="hero">
-            <h1 class="mono">ART <span class="accent-text">&</span><br>ALGORITHM</h1>
-            <p>
-                专注于渲染管线定制、着色器开发与工具流优化的 <span class="accent-text">技术美术</span>。
-                擅长在性能约束与视觉表现之间寻找最优解。
+            <h1 class="mono" id="hero-title">
+                VISUAL ALCHEMIST
+            </h1>
+            <p style="color: var(--text-dim); max-width: 500px; margin-top: 25px;">
+                在数学的逻辑中寻找艺术的感性。我是连接代码架构与视觉美学的桥梁。
             </p>
         </section>
 
-        <section id="work">
-            <span class="section-title">Selected Works / 选集</span>
+        <section id="projects">
+            <span class="section-title">// RECENT_MODULES</span>
             <div class="grid">
                 <div class="card">
-                    <h3 class="mono">URP Stylized Water</h3>
-                    <p>高性能移动端水体渲染方案，包含深度混合与折射效果。</p>
-                    <div class="tag">HLSL / C#</div>
+                    <h3 class="mono">Lowpoly_World</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin: 15px 0;">极简几何风格的大规模场景渲染方案。</p>
+                    <span class="mono" style="color:var(--accent-color); font-size: 0.7rem;">[ UNITY / URP ]</span>
                 </div>
                 <div class="card">
-                    <h3 class="mono">Compute Shader Foliage</h3>
-                    <p>基于计算着色器的海量植被渲染系统。</p>
-                    <div class="tag">UNITY / COMPUTE SHADER</div>
-                </div>
-                <div class="card">
-                    <h3 class="mono">Editor Toolsets</h3>
-                    <p>大幅提升美术资产导入效率的自动化工具插件。</p>
-                    <div class="tag">EDITOR SCRIPTING</div>
+                    <h3 class="mono">Vertex_Editor_PRO</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin: 15px 0;">直接在引擎窗口内操作网格顶点的扩展工具。</p>
+                    <span class="mono" style="color:var(--accent-color); font-size: 0.7rem;">[ EDITOR_SDK ]</span>
                 </div>
             </div>
-        </section>
-
-        <section id="skills">
-            <span class="section-title">Technical Stack / 技术栈</span>
-            <div class="skills-wrap mono">
-                <div class="skill-item">Unity / URP / HDRP</div>
-                <div class="skill-item">Shader Graph / HLSL</div>
-                <div class="skill-item">Python / C# / C++</div>
-                <div class="skill-item">Blender / Houdini</div>
-                <div class="skill-item">Performance Profiling</div>
-            </div>
-        </section>
-
-        <section id="about">
-            <span class="section-title">Philosophy / 理念</span>
-            <p style="max-width: 800px;">
-                我致力于构建更高效的生产工作流，通过程序化的方式释放艺术家的创造力。
-                在每一次像素的迭代中，寻找算法的温度。
-            </p>
         </section>
     </main>
 
     <footer class="mono">
-        &copy; 2026 DESIGNED BY YOURNAME. ALL RIGHTS RESERVED.
+        "光照烘焙八小时，赛博功德一整天。"
     </footer>
 
+    <script>
+        // --- 1. 开机动画控制逻辑 (保持不变) ---
+        window.addEventListener('load', () => {
+            const progress = document.getElementById('loader-progress');
+            const statusText = document.getElementById('status-text');
+            const logText = document.getElementById('log-text');
+            const logs = [
+                "> Loading Shaders...",
+                "> Connecting to Core...",
+                "> Mapping UV Channels...",
+                "> Baking Cyber-Merit...",
+                "> Finalizing UI Layer..."
+            ];
+
+            let p = 0;
+            const interval = setInterval(() => {
+                p += Math.random() * 15;
+                if (p >= 100) {
+                    p = 100;
+                    clearInterval(interval);
+                    statusText.innerText = "Access Granted";
+                    setTimeout(() => {
+                        document.body.classList.add('loaded');
+                        // 当开机动画结束，进入主页面时，开始 Hero 标题动画
+                        startHeroTitleAnimation();
+                    }, 500);
+                }
+                progress.style.width = p + "%";
+                logText.innerText = logs[Math.floor(p / 25)] || logs[logs.length - 1];
+            }, 150);
+        });
+
+        // --- 新增：Hero 标题文字逐字跳出动画逻辑 ---
+        function startHeroTitleAnimation() {
+            const title = document.getElementById('hero-title');
+            const text = title.innerText.trim();
+            const accentWord = "ALCHEMIST"; // 需要特殊颜色的单词
+
+            // 将文本按空格分割成单词，再将单词分割成字母，并在每个字母周围包裹 span.char
+            const words = text.split(' ').map(word => {
+                const isAccent = word === accentWord;
+                const chars = word.split('').map(char => `<span class="char">${char}</span>`).join('');
+
+                // 如果是特殊单词，包裹在 .accent-text 中，并加上换行符
+                return isAccent ? `<br><span class="accent-text">${chars}</span>` : chars;
+            });
+
+            title.innerHTML = words.join(' '); // 将处理后的 HTML 重新填入标题
+
+            // 获取所有生成的 .char span
+            const chars = title.querySelectorAll('.char');
+
+            // 为每个字母设置随机且递增的 animation-delay
+            chars.forEach((char, index) => {
+                // 基础延迟 + 递增延迟 + 随机抖动
+                const delay = 0.2 + (index * 0.04) + (Math.random() * 0.02);
+                char.style.animationDelay = delay + 's';
+            });
+        }
+
+        // --- 2. 颜色更新 (保持不变) ---
+        const root = document.querySelector(':root');
+        const inputs = ['hue', 'sat', 'light'].map(id => document.getElementById(id));
+        function updateColor() {
+            const [h, s, l] = inputs.map(i => i.value);
+            root.style.setProperty('--accent-h', h);
+            root.style.setProperty('--accent-s', s + '%');
+            root.style.setProperty('--accent-l', l + '%');
+        }
+        inputs.forEach(i => i.addEventListener('input', updateColor));
+        updateColor();
+
+        // --- 3. 粒子系统 (保持不变) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, mouse = { x: -1000, y: -1000 };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        resize();
+
+        class Particle {
+            constructor() { this.init(); }
+            init() {
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = Math.random() * 1.5 + 0.5;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+                let dx = mouse.x - this.x, dy = mouse.y - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 150) {
+                    let force = (150 - dist) / 150;
+                    let angle = Math.atan2(dy, dx);
+                    this.x -= Math.cos(angle) * force * 4;
+                    this.y -= Math.sin(angle) * force * 4;
+                }
+            }
+            draw(h) {
+                ctx.fillStyle = `hsla(${h}, 100%, 50%, 0.4)`;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        const particles = Array.from({ length: 120 }, () => new Particle());
+
+        let time = 0;
+        function animate() {
+            time += 0.01;
+            ctx.clearRect(0, 0, width, height);
+            const h = inputs[0].value;
+            ctx.strokeStyle = `hsla(${h}, 100%, 50%, 0.08)`;
+            ctx.lineWidth = 1;
+            const gridSize = 60, scroll = (time * 15) % gridSize;
+            for (let y = scroll; y < height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            particles.forEach(p => { p.update(); p.draw(h); });
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 80) {
+                        let mDist = Math.sqrt(Math.pow(mouse.x - particles[i].x, 2) + Math.pow(mouse.y - particles[i].y, 2));
+                        if (mDist < 150) {
+                            ctx.strokeStyle = `hsla(${h}, 100%, 50%, ${0.2 * (1 - dist / 80)})`;
+                            ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
 </body>
+
 </html>
